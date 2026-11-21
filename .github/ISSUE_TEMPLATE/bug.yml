@@ -1,0 +1,32 @@
+name: Report a bug
+description: Report trouble with setup, conversion, or importing a file.
+labels: [bug]
+body:
+  - type: input
+    id: versions
+    attributes:
+      label: Windows, Thorium Inbox, and Thorium versions
+      placeholder: Windows 11, Thorium Inbox 0.1.0, Thorium 3.5.1
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Where did it happen?
+      options: [Setup or startup, Watching the folder, PDF conversion, Thorium import, Something else]
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Include the file type and whether the file was still downloading.
+    validations:
+      required: true
+  - type: textarea
+    id: results
+    attributes:
+      label: Expected result and what happened
+      description: If available, include the relevant View activity entry with private filenames and paths removed. Use a shareable sample file.
+    validations:
+      required: true

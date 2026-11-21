@@ -1,0 +1,10 @@
+**/bin/
+**/obj/
+.vs/
+artifacts/
+TestResults/
+*.user
+*.pfx
+*.p12
+*.snk
+*.signing.json
