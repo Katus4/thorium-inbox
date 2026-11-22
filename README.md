@@ -20,4 +20,4 @@ The EPUB format preserves page layout as images. It works for magazine columns, 
 
 Contributors work on a fork and open pull requests against `develop`. The complete released source lives on `main`. See the [contribution guide](CONTRIBUTING.md), [issue forms](../../issues/new/choose), and [release instructions](docs/releasing.md). VPS-hosted app updates are on the [roadmap](docs/roadmap.md).
 
-Thorium Inbox is source-available under [PolyForm Noncommercial 1.0.0](LICENSE). [Third-party notices](THIRD-PARTY-NOTICES.md) cover the bundled libraries. Thorium Reader is developed by EDRLab.
+Thorium Inbox is open source under the [GNU General Public License version 3](LICENSE) (GPL-3.0-only). [Third-party notices](THIRD-PARTY-NOTICES.md) cover the bundled libraries. Thorium Reader is developed by EDRLab.

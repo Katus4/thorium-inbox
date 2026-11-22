@@ -23,4 +23,4 @@ If you need to add `upstream`, run `git remote add upstream` followed by the clo
 
 Use Windows x64 and the .NET 10 SDK specified by [global.json](global.json). Run `dotnet run --project src/ThoriumInbox` to open the app. With [Inno Setup 6](https://jrsoftware.org/isinfo.php) installed, run `./scripts/Build-Installer.ps1 -UnsignedTestBuild` to build a local test installer. See [release instructions](docs/releasing.md) for signed builds.
 
-By submitting a pull request, you license your contribution under the repository’s [PolyForm Noncommercial 1.0.0 license](LICENSE).
+By submitting a pull request, you license your contribution under the repository’s [GNU General Public License version 3](LICENSE) (GPL-3.0-only).

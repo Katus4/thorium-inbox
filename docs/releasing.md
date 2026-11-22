@@ -24,6 +24,8 @@ The build signs and verifies the app binaries, setup executable, and uninstaller
 
 ## Verify and publish
 
+Create one release per version and keep prior releases available. Write the changes for the new version in `docs/releases/vX.Y.Z.md`. Use **New features**, **Fixes**, and **Other changes** for sections with content. GitHub Releases and the in-app update notice will use the same release notes.
+
 Test the signed setup on a Windows x64 machine with Defender enabled. Exercise a clean install with and without Thorium, install with a custom inbox, sign out and back in, drop a PDF and EPUB in the inbox, then verify uninstall removes the sign-in entry. Confirm the converted pages and Thorium library entry.
 
 Run `./scripts/Publish-Release.ps1 -Repository <owner/name>` from the published `main` commit. It checks the installer signature and SHA-256, creates a draft release, then publishes the verified assets. Keep distribution versions in `Directory.Build.props`. Keep certificate keys and signing profile files outside the repository.
