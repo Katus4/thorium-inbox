@@ -2,6 +2,10 @@
 
 Promote upstream `develop` to `main` through a pull request and wait for the Windows and branch checks. Build from the matching commit on `main` using the pinned .NET SDK, Inno Setup 6, and a Windows SDK SignTool.
 
+## Test installer from GitHub Actions
+
+After the tests pass, [CI](../.github/workflows/ci.yml) builds the unsigned Windows x64 installer on pushes to `main` and `develop` and on manual runs. Open a successful run in Actions and download **thorium-inbox-windows-x64-unsigned-test** from its artifacts. The ZIP contains the setup executable and its SHA-256 checksum and is kept for 14 days. Use the signed release steps below for GitHub Releases.
+
 ## Sign the installer
 
 Use a publicly trusted code-signing certificate available to the current Windows user.
