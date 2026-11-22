@@ -99,3 +99,126 @@ jobs:
           global-json-file: global.json
       - run: dotnet restore tests/ThoriumInbox.Tests/ThoriumInbox.Tests.csproj --locked-mode
       - run: dotnet test tests/ThoriumInbox.Tests/ThoriumInbox.Tests.csproj --no-restore --configuration Release
+
+  linux-installer:
+    name: Linux x64 test installer
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+      - name: Lint installer scripts
+        run: shellcheck scripts/Build-LinuxInstaller.sh scripts/Build-MacInstaller.sh
+      - name: Build unsigned Debian package
+        run: ./scripts/Build-LinuxInstaller.sh
+      - name: Verify package metadata and executable
+        shell: bash
+        working-directory: artifacts/test-installer/linux-x64
+        run: |
+          package=ThoriumInbox-linux-x64-Unsigned-Test.deb
+          sha256sum --check SHA256SUMS.txt
+          dpkg-deb --info "$package"
+          test "$(dpkg-deb --field "$package" Package)" = thorium-inbox
+          test "$(dpkg-deb --field "$package" Architecture)" = amd64
+          apt-get --simulate --no-install-recommends install "$PWD/$package"
+
+          payload=$(mktemp -d)
+          trap 'rm -rf -- "$payload"' EXIT
+          dpkg-deb --extract "$package" "$payload"
+          test "$(readlink "$payload/usr/bin/thorium-inbox")" = /opt/thorium-inbox/ThoriumInbox
+          desktop="$payload/usr/share/applications/io.github.katus4.thoriuminbox.desktop"
+          grep -Fx 'Exec=/usr/bin/thorium-inbox' "$desktop"
+          test -s "$payload/usr/share/icons/hicolor/128x128/apps/thorium-inbox.png"
+          executable="$payload/opt/thorium-inbox/ThoriumInbox"
+          test -x "$executable"
+          for library in libcoreclr.so libSkiaSharp.so libpdfium.so; do
+            test -s "$payload/opt/thorium-inbox/$library"
+          done
+          version=$(dpkg-deb --field "$package" Version)
+          actual_version=$("$executable" --version)
+          test "$actual_version" = "$version"
+      - name: Upload unsigned test installer
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v7
+        with:
+          name: thorium-inbox-linux-x64-unsigned-test
+          path: |
+            artifacts/test-installer/linux-x64/ThoriumInbox-linux-x64-Unsigned-Test.deb
+            artifacts/test-installer/linux-x64/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+  macos-installer:
+    name: macOS ${{ matrix.platform }} test installer
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-15-intel
+            platform: x64
+            machine: x86_64
+          - os: macos-15
+            platform: arm64
+            machine: arm64
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+      - name: Build unsigned macOS package
+        env:
+          PLATFORM: ${{ matrix.platform }}
+        run: ./scripts/Build-MacInstaller.sh "$PLATFORM"
+      - name: Verify package metadata and executable
+        shell: bash
+        working-directory: artifacts/test-installer/macos-${{ matrix.platform }}
+        env:
+          PLATFORM: ${{ matrix.platform }}
+          MACHINE: ${{ matrix.machine }}
+        run: |
+          package="ThoriumInbox-macos-$PLATFORM-Unsigned-Test.pkg"
+          shasum -a 256 --check SHA256SUMS.txt
+          payload=$(mktemp -d)
+          trap 'rm -rf -- "$payload"' EXIT
+          pkgutil --expand-full "$package" "$payload/expanded"
+          metadata="$payload/expanded/PackageInfo"
+          identifier=io.github.katus4.thoriuminbox
+          test "$(xmllint --xpath 'string(/pkg-info/@identifier)' "$metadata")" = "$identifier"
+          test "$(xmllint --xpath 'string(/pkg-info/@install-location)' "$metadata")" = /Applications
+          version=$(xmllint --xpath 'string(/pkg-info/@version)' "$metadata")
+          app="$payload/expanded/Payload/Thorium Inbox.app/Contents"
+          plutil -lint "$app/Info.plist"
+          test "$(plutil -extract CFBundleIdentifier raw -o - "$app/Info.plist")" = "$identifier"
+          test "$(plutil -extract CFBundleShortVersionString raw -o - "$app/Info.plist")" = "$version"
+          test "$(plutil -extract CFBundleVersion raw -o - "$app/Info.plist")" = "$version"
+          test "$(plutil -extract CFBundleExecutable raw -o - "$app/Info.plist")" = ThoriumInbox
+          icon=$(plutil -extract CFBundleIconFile raw -o - "$app/Info.plist")
+          test -s "$app/Resources/$icon"
+          executable="$app/MacOS/ThoriumInbox"
+          test -x "$executable"
+          test "$(lipo -archs "$executable")" = "$MACHINE"
+          for library in libcoreclr.dylib libAvaloniaNative.dylib libSkiaSharp.dylib libpdfium.dylib; do
+            lipo "$app/MacOS/$library" -verify_arch "$MACHINE"
+          done
+          actual_version=$("$executable" --version)
+          test "$actual_version" = "$version"
+      - name: Upload unsigned test installer
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v7
+        with:
+          name: thorium-inbox-macos-${{ matrix.platform }}-unsigned-test
+          path: |
+            artifacts/test-installer/macos-${{ matrix.platform }}/ThoriumInbox-macos-${{ matrix.platform }}-Unsigned-Test.pkg
+            artifacts/test-installer/macos-${{ matrix.platform }}/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0

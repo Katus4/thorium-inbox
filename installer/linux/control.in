@@ -1,0 +1,11 @@
+Package: thorium-inbox
+Version: @VERSION@
+Section: utils
+Priority: optional
+Architecture: amd64
+Maintainer: Katus4 <62028361+Katus4@users.noreply.github.com>
+Installed-Size: @INSTALLED_SIZE@
+Depends: ca-certificates, libc6, libgcc-s1, libgssapi-krb5-2, libicu78 | libicu76 | libicu74 | libicu72 | libicu70, libssl3t64 | libssl3, libstdc++6, tzdata, zlib1g, libbrotli1, libfontconfig1, libx11-6, libice6, libsm6
+Homepage: https://github.com/Katus4/thorium-inbox
+Description: Inbox for Thorium Reader
+ Watches a local folder and sends PDFs and EPUBs to Thorium Reader.

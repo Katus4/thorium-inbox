@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Thorium Inbox
+Comment=Send PDFs and EPUBs to Thorium Reader
+Exec=/usr/bin/thorium-inbox
+Icon=thorium-inbox
+Terminal=false
+Categories=Utility;
