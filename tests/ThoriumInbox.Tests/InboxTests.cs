@@ -125,6 +125,51 @@ public sealed class InboxTests : IDisposable
     }
 
     [Fact]
+    public async Task DirectEpubIsReadableWhileTheImporterRuns()
+    {
+        string? read = null;
+        var processor = CreateProcessor(async (path, token) =>
+        {
+            read = await File.ReadAllTextAsync(path, token);
+        });
+        await File.WriteAllTextAsync(Path.Combine(Inbox, "article.epub"), "Existing EPUB content");
+
+        await SettleAsync(processor);
+
+        Assert.Equal("Existing EPUB content", read);
+        Assert.DoesNotContain(activity, item => item.IsError);
+    }
+
+    [LinuxFact]
+    public async Task CaseDistinctLinuxPathsBothSettleAndImport()
+    {
+        var processor = CreateProcessor();
+        string first = Path.Combine(Inbox, "Article.epub");
+        string second = Path.Combine(Inbox, "article.epub");
+        await File.WriteAllTextAsync(first, "First content");
+        await File.WriteAllTextAsync(second, "Separate content and length");
+
+        await SettleAsync(processor);
+
+        Assert.Equal(2, imports.Count);
+        Assert.Contains(first, imports);
+        Assert.Contains(second, imports);
+    }
+
+    [LinuxFact]
+    public async Task UnicodePdfNameFitsInTheOutputFileSystemComponent()
+    {
+        var processor = CreateProcessor();
+        string input = Path.Combine(Inbox, new string('本', 82) + ".pdf");
+        await File.WriteAllBytesAsync(input, SamplePdf());
+
+        await SettleAsync(processor);
+
+        Assert.True(File.Exists(Assert.Single(imports)));
+        Assert.True(File.Exists(input));
+    }
+
+    [Fact]
     public async Task BrokenPdfIsReportedAndDoesNotPublishAPartialEpub()
     {
         var processor = CreateProcessor();
@@ -191,6 +236,15 @@ public sealed class InboxTests : IDisposable
     }
 
     public void Dispose() => Directory.Delete(root, recursive: true);
+
+    private sealed class LinuxFactAttribute : FactAttribute
+    {
+        public LinuxFactAttribute()
+        {
+            if (!OperatingSystem.IsLinux())
+                Skip = "This test exercises the Linux file-system behavior.";
+        }
+    }
 
     private sealed class TestClock : TimeProvider
     {

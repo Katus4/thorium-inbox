@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Drawing;
 using System.IO.Compression;
+using System.Runtime.Versioning;
 using System.Text;
 using System.Xml.Linq;
 using PDFtoImage;
@@ -17,9 +18,18 @@ internal static class PdfEpubConverter
     private static readonly XNamespace Container = "urn:oasis:names:tc:opendocument:xmlns:container";
     private static readonly Encoding Utf8 = new UTF8Encoding(false);
 
+    [SupportedOSPlatformGuard("windows")]
+    [SupportedOSPlatformGuard("linux")]
+    [SupportedOSPlatformGuard("macos")]
+    private static readonly bool SupportsDesktopRendering =
+        OperatingSystem.IsWindows() || OperatingSystem.IsLinux() || OperatingSystem.IsMacOS();
+
     public static void Convert(Stream pdf, string title, string sourceHash, Stream destination,
         CancellationToken cancellationToken)
     {
+        if (!SupportsDesktopRendering)
+            throw new PlatformNotSupportedException("PDF conversion supports Windows, Linux, and macOS.");
+
         var sizes = Conversion.GetPageSizes(pdf, leaveOpen: true).ToArray();
         if (sizes.Length == 0)
             throw new InvalidDataException("The PDF has no pages.");
@@ -81,6 +91,9 @@ internal static class PdfEpubConverter
                 new XAttribute(Epub + "type", "toc"), new XElement(Html + "h1", "Pages"), toc)));
     }
 
+    [SupportedOSPlatform("windows")]
+    [SupportedOSPlatform("linux")]
+    [SupportedOSPlatform("macos")]
     private static IEnumerable<SKBitmap> RenderPages(Stream pdf, SizeF[] sizes, CancellationToken token)
     {
         const int standardDpi = 150;

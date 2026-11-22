@@ -9,6 +9,7 @@ internal sealed class TrayApplication : ApplicationContext
     private readonly NotifyIcon tray;
     private readonly ContextMenuStrip menu;
     private readonly Icon? customIcon;
+    private readonly ReleaseNotifications updates;
     private InboxWatcher? watcher;
     private string inbox = AppLocations.ReadInbox();
     private InboxActivity? lastLogged;
@@ -21,6 +22,7 @@ internal sealed class TrayApplication : ApplicationContext
         Icon icon = customIcon ?? SystemIcons.Application;
         window = new SettingsWindow(icon, ChangeFolder, OpenInbox, OpenEpubs, ViewActivity);
         _ = window.Handle;
+        updates = new ReleaseNotifications(window, release => OpenPath(() => release.Page.AbsoluteUri));
 
         menu = new ContextMenuStrip();
         menu.Items.Add("Open inbox", null, (_, _) => OpenInbox());
@@ -28,6 +30,7 @@ internal sealed class TrayApplication : ApplicationContext
         menu.Items.Add("View activity", null, (_, _) => ViewActivity());
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("Settings…", null, (_, _) => ShowWindow());
+        menu.Items.Add("Check for updates…", null, async (_, _) => await updates.CheckNowAsync());
         menu.Items.Add("Quit", null, async (_, _) => await QuitAsync());
 
         tray = new NotifyIcon { Icon = icon, Text = "Thorium Inbox", ContextMenuStrip = menu, Visible = true };
@@ -175,6 +178,7 @@ internal sealed class TrayApplication : ApplicationContext
     {
         if (disposing)
         {
+            updates.Dispose();
             tray.Dispose();
             menu.Dispose();
             window.Dispose();

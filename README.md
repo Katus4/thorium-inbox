@@ -16,6 +16,12 @@ Signed installers for Windows x64 are published on [GitHub Releases](../../relea
 
 The EPUB format preserves page layout as images. It works for magazine columns, scans, and other fixed pages, with zoom in Thorium. Keep the original PDF if you need to search or select its text.
 
+The tray checks for new releases at startup and daily. You can also select **Check for updates**. The app shows the release notes and offers **Get update now** to open that version on GitHub or **Later** to dismiss it.
+
+## Privacy
+
+Thorium Inbox processes your files locally. Setup downloads Thorium Reader from GitHub if it is missing. The app requests public release information from GitHub for update checks and keeps your document names, file contents, and import history on your device.
+
 ## Develop
 
 Contributors work on a fork and open pull requests against `develop`. The complete released source lives on `main`. See the [contribution guide](CONTRIBUTING.md), [issue forms](../../issues/new/choose), and [release instructions](docs/releasing.md). VPS-hosted app updates are on the [roadmap](docs/roadmap.md).

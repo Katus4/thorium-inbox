@@ -1,8 +1,6 @@
-using ThoriumInbox.Core;
+namespace ThoriumInbox.Core;
 
-namespace ThoriumInbox;
-
-internal sealed class InboxWatcher : IAsyncDisposable
+public sealed class InboxWatcher : IAsyncDisposable
 {
     private readonly FileSystemWatcher watcher;
     private readonly SemaphoreSlim change = new(0, 1);

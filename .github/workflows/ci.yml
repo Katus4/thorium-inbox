@@ -82,3 +82,20 @@ jobs:
           if-no-files-found: error
           retention-days: 14
           compression-level: 0
+
+  portable:
+    name: Shared tests (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+      - run: dotnet restore tests/ThoriumInbox.Tests/ThoriumInbox.Tests.csproj --locked-mode
+      - run: dotnet test tests/ThoriumInbox.Tests/ThoriumInbox.Tests.csproj --no-restore --configuration Release
