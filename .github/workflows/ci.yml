@@ -46,3 +46,39 @@ jobs:
       - run: dotnet restore ThoriumInbox.slnx --locked-mode
       - run: dotnet test ThoriumInbox.slnx --no-restore --configuration Release
       - run: dotnet build src/ThoriumInbox/ThoriumInbox.csproj --no-restore --configuration Release
+
+      - name: Build unsigned Windows x64 installer
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        shell: pwsh
+        run: |
+          $innoSetup = Join-Path $env:RUNNER_TEMP 'innosetup-6.7.3.exe'
+          $innoDirectory = Join-Path $env:RUNNER_TEMP 'Inno Setup 6'
+          $downloadUrl = 'https://github.com/jrsoftware/issrc/releases/download/is-6_7_3/innosetup-6.7.3.exe'
+          $expectedHash = '9c73c3bae7ed48d44112a0f48e66742c00090bdb5bef71d9d3c056c66e97b732'
+          Invoke-WebRequest -Uri $downloadUrl -OutFile $innoSetup
+          if ((Get-FileHash -LiteralPath $innoSetup -Algorithm SHA256).Hash -ne $expectedHash) {
+              throw 'Inno Setup download checksum did not match.'
+          }
+
+          $destination = '/DIR="{0}"' -f $innoDirectory
+          $setup = Start-Process -FilePath $innoSetup -ArgumentList @(
+              '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/SP-', $destination
+          ) -WindowStyle Hidden -Wait -PassThru
+          if ($setup.ExitCode -ne 0) {
+              throw "Inno Setup installation failed with exit code $($setup.ExitCode)."
+          }
+
+          $compiler = Join-Path $innoDirectory 'ISCC.exe'
+          ./scripts/Build-Installer.ps1 -UnsignedTestBuild -InnoCompiler $compiler
+
+      - name: Upload unsigned test installer
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v7
+        with:
+          name: thorium-inbox-windows-x64-unsigned-test
+          path: |
+            artifacts/test-installer/ThoriumInbox-Setup-x64-Unsigned-Test.exe
+            artifacts/test-installer/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
