@@ -146,14 +146,28 @@ jobs:
           export XDG_DOCUMENTS_DIR="$payload/documents"
           mkdir -p "$XDG_CONFIG_HOME" "$XDG_DOCUMENTS_DIR"
           printf 'XDG_DOCUMENTS_DIR="%s"\n' "$XDG_DOCUMENTS_DIR" > "$XDG_CONFIG_HOME/user-dirs.dirs"
-          status=0
-          timeout --kill-after=5s 8s xvfb-run -a "$executable" > "$payload/desktop.log" 2>&1 || status=$?
-          if [[ "$status" != 124 ]]; then
-            cat "$payload/desktop.log"
-            echo "Desktop smoke exited unexpectedly with status $status."
+          cat > "$payload/smoke.sh" <<'SMOKE'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          "$1" &
+          app=$!
+          trap 'kill "$app" 2>/dev/null || true; wait "$app" 2>/dev/null || true' EXIT
+          for (( attempt = 0; attempt < 30; attempt++ )); do
+            kill -0 "$app"
+            if grep -F 'Watching for PDFs and EPUBs.' "$XDG_DATA_HOME/Thorium Inbox/activity.log" 2>/dev/null; then
+              sleep 1
+              kill -0 "$app"
+              exit 0
+            fi
+            sleep 1
+          done
+          exit 1
+          SMOKE
+          if ! timeout --kill-after=5s 40s xvfb-run -a -e "$payload/display.log" \
+              dbus-run-session -- bash "$payload/smoke.sh" "$executable" > "$payload/desktop.log" 2>&1; then
+            cat "$payload/display.log" "$payload/desktop.log"
             exit 1
           fi
-          grep -F 'Watching for PDFs and EPUBs.' "$XDG_DATA_HOME/Thorium Inbox/activity.log"
       - name: Upload unsigned test installer
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v7

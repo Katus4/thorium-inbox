@@ -19,7 +19,7 @@
     <AvaloniaResource Include="Assets/inbox.ico" />
     <ProjectReference Include="../ThoriumInbox.Core/ThoriumInbox.Core.csproj" />
   </ItemGroup>
-  <ItemGroup Condition="'$(ThoriumUpdatePublicKey)' != ''">
+  <ItemGroup Condition="'$(ThoriumUpdatePublicKey)' != '' and '$(ThoriumTestBuild)' != 'true'">
     <AssemblyMetadata Include="ThoriumInbox.UpdatePublicKey" Value="$(ThoriumUpdatePublicKey)" />
   </ItemGroup>
 </Project>

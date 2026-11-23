@@ -96,11 +96,11 @@ internal static class ThoriumImporter
 
     private static string StageIfNeeded(string epubPath, string fingerprint)
     {
-        // Thorium's CLI treats a path as a glob expression.
-        if (!HasGlobCharacters(epubPath))
+        // Thorium's CLI reads glob expressions and screens arguments for command switches.
+        if (!NeedsNeutralPath(epubPath))
             return epubPath;
         string directory = Path.Combine(AppLocations.AppData, "import");
-        if (HasGlobCharacters(directory))
+        if (NeedsNeutralPath(directory))
             throw new IOException("Thorium cannot import this filename from the current profile folder.");
         Directory.CreateDirectory(directory);
         string staged = Path.Combine(directory, fingerprint + ".epub");
@@ -108,8 +108,9 @@ internal static class ThoriumImporter
         return staged;
     }
 
-    private static bool HasGlobCharacters(string path) =>
+    private static bool NeedsNeutralPath(string path) =>
         path.IndexOfAny(['[', ']', '{', '}', '(', ')', '*', '?']) >= 0
+        || path.Contains("--", StringComparison.Ordinal)
         || (!OperatingSystem.IsWindows() && path.Contains('\\'));
 
     private static async Task WaitForReceiptAsync(string profile, string fingerprint, CancellationToken token)
