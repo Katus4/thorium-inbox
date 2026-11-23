@@ -30,7 +30,7 @@ desktop=io.github.katus4.thoriuminbox.desktop
 
 mkdir -p "$stage/DEBIAN" "$stage/usr/bin" "$payload" "$docs"
 dotnet publish "$project" -c Release -r linux-x64 --self-contained true \
-    -p:RestoreLockedMode=true -p:DebugType=None -p:DebugSymbols=false -o "$payload"
+    -p:RestoreLockedMode=true -p:DebugType=None -p:DebugSymbols=false -p:ThoriumTestBuild=true -o "$payload"
 test -x "$payload/ThoriumInbox"
 
 ln -s /opt/thorium-inbox/ThoriumInbox "$stage/usr/bin/thorium-inbox"

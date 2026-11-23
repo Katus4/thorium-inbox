@@ -1,13 +1,13 @@
 # Contributing to Thorium Inbox
 
-Use [Issues](../../issues/new/choose) for bugs and suggestions. Include your Windows and Thorium versions, the steps you took, and the relevant entry from **View activity**. A small redistributable test file is helpful for conversion bugs.
+Use GitHub Issues for bugs and suggestions. Include your operating system and Thorium versions, the steps you took, and the relevant entry from **View activity**. A small redistributable test file is helpful for conversion bugs. [Issue forms](../../issues/new/choose)
 
 ## Fork and open a pull request
 
 1. Fork the repository on GitHub and clone your fork.
 2. Add the original repository as `upstream` and fetch its branches.
 3. Create your working branch from `upstream/develop`.
-4. Run the Windows build and tests, then push the branch to your fork.
+4. Run the build and tests, then push the branch to your fork.
 5. Open a pull request with upstream `develop` as the base. Describe the change and the checks you ran.
 
 ```powershell
@@ -21,6 +21,6 @@ If you need to add `upstream`, run `git remote add upstream` followed by the clo
 
 ## Build the desktop app
 
-Use Windows x64 and the .NET 10 SDK specified by [global.json](global.json). Run `dotnet run --project src/ThoriumInbox` to open the app. With [Inno Setup 6](https://jrsoftware.org/isinfo.php) installed, run `./scripts/Build-Installer.ps1 -UnsignedTestBuild` to build a local test installer. See [release instructions](docs/releasing.md) for signed builds.
+Use the .NET 10 SDK in [global.json](global.json), then run `dotnet run --project src/ThoriumInbox` to open the shared Avalonia app. Build the installer on its target operating system. [Installer and testing instructions](docs/testing.md)
 
 By submitting a pull request, you license your contribution under the repository’s [GNU General Public License version 3](LICENSE) (GPL-3.0-only).

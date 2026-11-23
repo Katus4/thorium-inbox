@@ -70,9 +70,10 @@ New-Item -ItemType Directory -Force -Path $work, $output | Out-Null
 
 Push-Location $root
 try {
+    $testProperty = if ($UnsignedTestBuild) { 'true' } else { 'false' }
     Invoke-Checked $DotNetPath @('publish', 'src/ThoriumInbox/ThoriumInbox.csproj', '-c', 'Release', '-r', 'win-x64',
         '--self-contained', 'true', '--disable-build-servers', '-m:1', '-p:UseSharedCompilation=false',
-        '-p:RestoreLockedMode=true', '-p:DebugType=None', '-p:DebugSymbols=false', '-o', $payload)
+        '-p:RestoreLockedMode=true', '-p:DebugType=None', '-p:DebugSymbols=false', "-p:ThoriumTestBuild=$testProperty", '-o', $payload)
 
     Copy-Item -LiteralPath "$root/LICENSE", "$root/NOTICE", "$root/THIRD-PARTY-NOTICES.md" -Destination $payload
     Copy-Item -LiteralPath "$root/licenses" -Destination $payload -Recurse

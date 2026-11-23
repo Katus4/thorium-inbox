@@ -1,7 +1,9 @@
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 
 namespace ThoriumInbox;
 
+[SupportedOSPlatform("windows")]
 internal static class StoreFileActivation
 {
     public static void Open(string appId, string epubPath)

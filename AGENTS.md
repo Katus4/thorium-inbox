@@ -9,10 +9,10 @@
 
 ## Development and checks
 
-- Use the .NET SDK specified in `global.json`. Run `dotnet restore ThoriumInbox.slnx --locked-mode`, then `dotnet test ThoriumInbox.slnx --no-restore` on Windows x64. Build the WinForms project separately when changing the executable or installer inputs.
+- Use the .NET SDK specified in `global.json`. Run `dotnet restore ThoriumInbox.slnx --locked-mode`, `dotnet test ThoriumInbox.slnx --no-restore`, and `dotnet build ThoriumInbox.slnx --no-restore`. Use the native installer CI jobs when changing packaging or platform integration.
 - Test observable behavior when changing download settling, file conversion, import receipts, retry behavior, or installer integration. Use shareable PDFs and a disposable Thorium profile for testing.
 - Preserve the original PDF, process only the configured inbox, and record a successful import after Thorium accepts it. Keep the fixed-layout EPUB readable in page order.
-- Use the native Windows controls and wording described in `DESIGN.md`. Keep the tray useful at sign-in and the settings window usable with the keyboard.
+- Follow `DESIGN.md` for the shared Avalonia window. Keep platform-specific login and Thorium integration out of the window code. Keep the tray and menu bar useful at sign-in and the settings window usable with the keyboard.
 
 ## Collaboration and releases
 

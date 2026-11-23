@@ -1,8 +1,9 @@
-# Windows desktop design
+# Desktop design
 
-Thorium Inbox sits in the notification area while people choose files in Explorer or a browser. The settings window should make it clear where a PDF goes and what happened to the last file.
+Thorium Inbox works in the background while people choose files in a browser or file manager. Settings show the watched folder, the Reader selected for import, login startup, and the latest activity.
 
-- Use Segoe UI through Windows system fonts. Use one heading and the same type style for folder names and status text.
+- Use Avalonia Fluent controls and the system theme. Keep paths selectable and visible to assistive technology. Use one heading and consistent typography for settings and status.
 - The folder path and **Change folder** share a row. **Open EPUBs** and **View activity** are useful from the tray and the settings window.
-- The inbox icon uses a cream page with a blue tray. Windows owns the window, dialog, focus, and menu styling. Keep the settings layout legible at larger display scales and with keyboard navigation.
+- The inbox icon uses a cream page with a blue tray. Use native window decorations and tray menus. Keep controls in reading order and let longer content scroll at larger display scales.
 - Status names describe real work. Use **Watching for PDFs and EPUBs**, **Converting**, **Importing**, and a filename in the result. On failure, tell the reader what file needs attention.
+- Use one update dialog with scrollable release notes and visible **Later** and **Install now** actions.

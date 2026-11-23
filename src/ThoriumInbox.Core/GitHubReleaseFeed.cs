@@ -3,11 +3,11 @@ using System.Text.Json;
 
 namespace ThoriumInbox.Core;
 
-public sealed record GitHubUpdate(Version Version, string Notes, Uri Page);
+public sealed record GitHubUpdate(Version Version, string Notes, Uri Page, bool HasSignedManifest = false);
 
 public sealed class GitHubReleaseFeed(HttpClient client)
 {
-    private const string Repository = "Katus4/thorium-inbox";
+    public const string Repository = "Katus4/thorium-inbox";
 
     public async Task<GitHubUpdate?> FindUpdateAsync(Version installedVersion, string installerName,
         CancellationToken cancellationToken = default)
@@ -39,12 +39,18 @@ public sealed class GitHubReleaseFeed(HttpClient client)
         if (availableVersion <= installed)
             return null;
 
-        if (!release.TryGetProperty("assets", out var assets) || assets.ValueKind != JsonValueKind.Array
-            || !assets.EnumerateArray().Any(asset => ReadText(asset, "name") == installerName && ReadText(asset, "state") == "uploaded"))
+        if (!release.TryGetProperty("assets", out var assets) || assets.ValueKind != JsonValueKind.Array)
+            return null;
+        var uploaded = assets.EnumerateArray()
+            .Where(asset => ReadText(asset, "state") == "uploaded")
+            .Select(asset => ReadText(asset, "name"))
+            .ToHashSet(StringComparer.Ordinal);
+        if (!uploaded.Contains(installerName))
             return null;
 
         return new GitHubUpdate(availableVersion, ReadText(release, "body") ?? "",
-            new Uri($"https://github.com/{Repository}/releases/tag/{tag}"));
+            new Uri($"https://github.com/{Repository}/releases/tag/{tag}"),
+            uploaded.Contains(ReleaseAssets.Manifest) && uploaded.Contains(ReleaseAssets.ManifestSignature));
     }
 
     private static string? ReadText(JsonElement item, string name) =>

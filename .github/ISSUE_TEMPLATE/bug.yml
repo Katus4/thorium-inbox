@@ -5,7 +5,7 @@ body:
   - type: input
     id: versions
     attributes:
-      label: Windows, Thorium Inbox, and Thorium versions
+      label: Operating system, Thorium Inbox, and Thorium Reader versions
       placeholder: Windows 11, Thorium Inbox 0.1.0, Thorium 3.5.1
     validations:
       required: true
@@ -13,7 +13,7 @@ body:
     id: area
     attributes:
       label: Where did it happen?
-      options: [Setup or startup, Watching the folder, PDF conversion, Thorium import, Something else]
+      options: [Setup or startup, Watching the folder, PDF conversion, Thorium import, App updates, Something else]
     validations:
       required: true
   - type: textarea

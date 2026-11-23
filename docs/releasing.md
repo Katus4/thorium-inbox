@@ -1,31 +1,40 @@
-# Publishing a Windows release
+# Builds and releases
 
-Promote upstream `develop` to `main` through a pull request and wait for the Windows and branch checks. Build from the matching commit on `main` using the pinned .NET SDK, Inno Setup 6, and a Windows SDK SignTool.
+GitHub Actions tests the app and builds unsigned Windows x64, Debian/Ubuntu x64, and macOS Intel and Apple Silicon installers. Successful pushes to `main` and `develop` and manual workflow runs upload the packages with their checksums for 14 days. [Testing instructions](testing.md)
 
-## Test installer from GitHub Actions
+Trusted signing and release publication are on hold. Create one GitHub Release per version after the platform installers are ready and keep the previous releases available. The app reads the current version and notes from that release. Actions uploads test packages only.
 
-After the tests pass, [CI](../.github/workflows/ci.yml) builds the unsigned Windows x64 installer on pushes to `main` and `develop` and on manual runs. Open a successful run in Actions and download **thorium-inbox-windows-x64-unsigned-test** from its artifacts. The ZIP contains the setup executable and its SHA-256 checksum and is kept for 14 days. Use the signed release steps below for GitHub Releases.
+## Prepare the release
 
-## Sign the installer
+1. Set the version in `Directory.Build.props` and add `docs/releases/vX.Y.Z.md`. Include **New features**, **Fixes**, and **Other changes** when those sections have entries. Use this file as the GitHub release body.
+2. Promote upstream `develop` to `main` through a pull request and wait for CI. Build the release installers using the same `main` commit and the pinned .NET SDK.
+3. Set `ThoriumUpdatePublicKey` as an environment variable when building each release binary. Use the base64-encoded DER SubjectPublicKeyInfo for the RSA key that signs update manifests. Keep the private key in the release signing environment.
 
-Use a publicly trusted code-signing certificate available to the current Windows user.
+## Platform packages
 
-```powershell
-./scripts/Build-Installer.ps1 -CertificateThumbprint <thumbprint>
+- **Windows x64.** With Inno Setup and Windows SDK SignTool installed, run `./scripts/Build-Installer.ps1 -CertificateThumbprint <thumbprint>` in PowerShell. The script signs the app, setup, and uninstaller and verifies trusted timestamps. It also accepts `-ArtifactSigningDlib <dll-path> -ArtifactSigningMetadata <metadata-path> -TimestampUrl http://timestamp.acs.microsoft.com` when using Microsoft Artifact Signing. Store signing credentials outside the repository.
+- **Linux x64.** Build a production `.deb` using the Linux package layout. The signed update manifest authenticates the packaged bytes.
+- **macOS Intel and Apple Silicon.** Build each production app bundle using the macOS package layout, sign the app with Developer ID Application, and sign the `.pkg` with Developer ID Installer. Verify the package signature, notarization, and stapled ticket on a Mac. [Apple Developer ID](https://developer.apple.com/developer-id/)
+
+The Linux and macOS scripts in CI produce test packages. Build the production payload with `ThoriumTestBuild=false` before applying release signing. Test install, login startup, Reader import, and upgrades on each supported desktop with the production packages.
+
+## Sign the update manifest
+
+Use these exact asset names when the installers are finalized.
+
+| Platform | Asset |
+| --- | --- |
+| Windows x64 | `ThoriumInbox-Setup-x64.exe` |
+| Debian/Ubuntu x64 | `ThoriumInbox-linux-x64.deb` |
+| macOS Intel | `ThoriumInbox-macos-x64.pkg` |
+| macOS Apple Silicon | `ThoriumInbox-macos-arm64.pkg` |
+
+In `artifacts/release`, write `update-manifest.json` as UTF-8 JSON. The `tag` is the version tag, for example `v0.1.0`. The `sha256` object maps each installer filename to its 64-character SHA-256 digest. Calculate digests after platform signing and notarization. Sign the exact manifest bytes with RSA PKCS#1 v1.5 and SHA-256 using the private key that matches the public key in the shipped apps.
+
+```sh
+openssl dgst -sha256 -sign /secure/path/update-key.pem -out update-manifest.sig update-manifest.json
 ```
 
-For Microsoft Artifact Signing, supply both the client DLL and the account/profile metadata file from outside the checkout.
+Run `./scripts/Publish-Release.ps1 -Repository Katus4/thorium-inbox` from the matching Windows release checkout with `ThoriumUpdatePublicKey` set. The script validates the Windows signature, verifies the manifest and checksums, and confirms that the version tag matches the installer source commit. It checks the uploaded files before publishing the draft. [GitHub Releases](../../../releases)
 
-```powershell
-./scripts/Build-Installer.ps1 -ArtifactSigningDlib <dll-path> -ArtifactSigningMetadata <metadata-path> -TimestampUrl http://timestamp.acs.microsoft.com
-```
-
-The build signs and verifies the app binaries, setup executable, and uninstaller. It writes release files to `artifacts/release`. A build with `-UnsignedTestBuild` goes to `artifacts/test-installer` for local QA.
-
-## Verify and publish
-
-Create one release per version and keep prior releases available. Write the changes for the new version in `docs/releases/vX.Y.Z.md`. Use **New features**, **Fixes**, and **Other changes** for sections with content. GitHub Releases and the in-app update notice will use the same release notes.
-
-Test the signed setup on a Windows x64 machine with Defender enabled. Exercise a clean install with and without Thorium, install with a custom inbox, sign out and back in, drop a PDF and EPUB in the inbox, then verify uninstall removes the sign-in entry. Confirm the converted pages and Thorium library entry.
-
-Run `./scripts/Publish-Release.ps1 -Repository <owner/name>` from the published `main` commit. It checks the installer signature and SHA-256, creates a draft release, then publishes the verified assets. Keep distribution versions in `Directory.Build.props`. Keep certificate keys and signing profile files outside the repository.
+An installed app with the matching public key verifies the manifest and installer digest before handing the package to the operating system. Builds without an update key can open the release page from the update dialog. Users choose **Install now** or **Later**.

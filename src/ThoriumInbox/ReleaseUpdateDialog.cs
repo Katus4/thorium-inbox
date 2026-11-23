@@ -1,53 +1,79 @@
+using Avalonia;
+using Avalonia.Automation;
+using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Layout;
+using Avalonia.Media;
 using ThoriumInbox.Core;
 
 namespace ThoriumInbox;
 
-internal sealed class ReleaseUpdateDialog : Form
+internal sealed class ReleaseUpdateDialog : Window
 {
-    public ReleaseUpdateDialog(GitHubUpdate update)
+    private readonly TaskCompletionSource<bool> decision = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private bool accepted;
+
+    public ReleaseUpdateDialog(GitHubUpdate release, bool canInstall)
     {
-        Text = "Thorium Inbox update";
-        StartPosition = FormStartPosition.CenterScreen;
-        AutoScaleMode = AutoScaleMode.Dpi;
-        MinimumSize = new Size(400, 280);
-        ClientSize = new Size(520, 350);
-        MinimizeBox = false;
-        MaximizeBox = false;
-        ShowInTaskbar = false;
+        Title = "Thorium Inbox update";
+        Width = 540;
+        Height = 390;
+        MinWidth = 385;
+        MinHeight = 295;
+        WindowStartupLocation = WindowStartupLocation.CenterScreen;
 
-        var layout = new TableLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(18), ColumnCount = 1, RowCount = 3 };
-        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        Controls.Add(layout);
-
-        var heading = new Label { Text = $"Version {update.Version} is available", AutoSize = true, Margin = new Padding(0, 0, 0, 10) };
-        layout.Controls.Add(heading, 0, 0);
+        var layout = new Grid
+        {
+            RowDefinitions = new RowDefinitions("Auto,*,Auto"),
+            RowSpacing = 12,
+            Margin = new Thickness(20),
+        };
+        layout.Children.Add(new TextBlock
+        {
+            Text = $"Version {release.Version} is available",
+            FontWeight = FontWeight.SemiBold,
+            FontSize = 18,
+            TextWrapping = TextWrapping.Wrap,
+        });
         var notes = new TextBox
         {
-            AccessibleName = "Release notes",
-            Dock = DockStyle.Fill,
-            Multiline = true,
-            ReadOnly = true,
-            ScrollBars = ScrollBars.Vertical,
-            Text = string.IsNullOrWhiteSpace(update.Notes)
-                ? "Open the release on GitHub for details."
-                : update.Notes.Replace("\r\n", "\n").Replace("\n", Environment.NewLine),
+            IsReadOnly = true,
+            AcceptsReturn = true,
+            TextWrapping = TextWrapping.Wrap,
+            Text = string.IsNullOrWhiteSpace(release.Notes) ? "Read more in the GitHub release." : release.Notes,
         };
-        layout.Controls.Add(notes, 0, 1);
+        AutomationProperties.SetName(notes, "Release notes");
+        Grid.SetRow(notes, 1);
+        layout.Children.Add(notes);
 
-        var buttons = new FlowLayoutPanel
+        var later = new Button { Content = "Later" };
+        later.Click += (_, _) => Close();
+        var install = new Button { Content = canInstall ? "Install now" : "Get update now" };
+        install.Click += (_, _) => { accepted = true; Close(); };
+        var actions = new StackPanel
         {
-            AutoSize = true, Dock = DockStyle.Fill, FlowDirection = FlowDirection.RightToLeft,
-            WrapContents = false, Padding = new Padding(0, 8, 0, 0),
+            Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right,
+            Spacing = 8,
+            Children = { later, install },
         };
-        var later = new Button { Text = "Later", DialogResult = DialogResult.Cancel, AutoSize = true };
-        var get = new Button { Text = "Get update now", DialogResult = DialogResult.OK, AutoSize = true };
-        buttons.Controls.Add(later);
-        buttons.Controls.Add(get);
-        layout.Controls.Add(buttons, 0, 2);
-        AcceptButton = get;
-        CancelButton = later;
+        Grid.SetRow(actions, 2);
+        layout.Children.Add(actions);
+        Content = layout;
+        Closed += (_, _) => decision.TrySetResult(accepted);
+        KeyDown += (_, args) =>
+        {
+            if (args.Key == Key.Escape)
+                Close();
+        };
+    }
+
+    public Task<bool> AskAsync(Window owner)
+    {
+        Icon = owner.Icon;
+        if (owner.IsVisible)
+            _ = ShowDialog(owner);
+        else
+            Show();
+        return decision.Task;
     }
 }

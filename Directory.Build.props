@@ -4,5 +4,6 @@
     <Nullable>enable</Nullable>
     <Version>0.1.0</Version>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <SkiaSharpVersion>4.150.7</SkiaSharpVersion>
   </PropertyGroup>
 </Project>

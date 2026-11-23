@@ -36,7 +36,7 @@ filename="ThoriumInbox-macos-$1-Unsigned-Test.pkg"
 
 mkdir -p "$app/MacOS" "$resources" "$iconset"
 dotnet publish "$project" -c Release -r "osx-$1" --self-contained true \
-    -p:RestoreLockedMode=true -p:DebugType=None -p:DebugSymbols=false -o "$app/MacOS"
+    -p:RestoreLockedMode=true -p:DebugType=None -p:DebugSymbols=false -p:ThoriumTestBuild=true -o "$app/MacOS"
 test -x "$app/MacOS/ThoriumInbox"
 cp LICENSE NOTICE THIRD-PARTY-NOTICES.md "$resources"
 cp -R licenses "$resources"

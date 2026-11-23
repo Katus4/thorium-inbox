@@ -1,94 +1,116 @@
-using ThoriumInbox.Core;
+using Avalonia;
+using Avalonia.Automation;
+using Avalonia.Controls;
+using Avalonia.Layout;
+using Avalonia.Media;
 
 namespace ThoriumInbox;
 
-internal sealed class SettingsWindow : Form
+internal sealed class SettingsWindow : Window
 {
-    private readonly TextBox folder = new()
-    {
-        Dock = DockStyle.Fill,
-        ReadOnly = true,
-        AccessibleName = "Watched folder path",
-        Margin = new Padding(0, 5, 8, 0),
-    };
-    private readonly Label activity = new()
-    {
-        AutoSize = true,
-        MaximumSize = new Size(510, 0),
-        Text = "Watching for PDFs and EPUBs.",
-        Margin = new Padding(0, 3, 0, 10),
-    };
+    private readonly TextBox folder = ReadOnlyPath("Watched folder path");
+    private readonly TextBox reader = ReadOnlyPath("Thorium Reader executable");
+    private readonly CheckBox startup = new() { Content = "Start at login" };
+    private readonly TextBlock startupHint = new() { TextWrapping = TextWrapping.Wrap, IsVisible = false };
+    private readonly TextBlock activity = new() { TextWrapping = TextWrapping.Wrap };
+    private readonly TextBlock update = new() { TextWrapping = TextWrapping.Wrap, IsVisible = false };
+    private readonly WrapPanel controls = new();
+    private bool settingStartup;
 
-    public SettingsWindow(Icon icon, Action changeFolder, Action openInbox, Action openEpubs, Action viewActivity)
+    public SettingsWindow(WindowIcon icon, Action changeFolder, Action chooseReader, Action openInbox, Action openEpubs,
+        Action viewActivity, Action<bool> changeStartup, Action checkUpdates, Action quit)
     {
-        Text = "Thorium Inbox";
+        Title = "Thorium Inbox";
         Icon = icon;
-        StartPosition = FormStartPosition.CenterScreen;
-        AutoScaleMode = AutoScaleMode.Dpi;
-        ClientSize = new Size(568, 320);
-        MinimumSize = new Size(545, 340);
-        MaximizeBox = false;
-        BackColor = SystemColors.Window;
+        Width = 580;
+        Height = 515;
+        MinWidth = 430;
+        MinHeight = 380;
+        WindowStartupLocation = WindowStartupLocation.CenterScreen;
 
-        var layout = new TableLayoutPanel
+        var content = new StackPanel { Spacing = 12, Margin = new Thickness(24) };
+        content.Children.Add(new TextBlock { Text = "Thorium Inbox", FontSize = 23, FontWeight = FontWeight.SemiBold });
+        content.Children.Add(new TextBlock
         {
-            Dock = DockStyle.Fill,
-            ColumnCount = 1,
-            Padding = new Padding(23, 20, 23, 18),
-        };
-        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        var title = TextLabel("Thorium Inbox", 17, true);
-        layout.Controls.Add(title);
-        layout.Controls.Add(TextLabel("Save PDFs here to turn them into EPUBs and add them to Thorium.", margin: new Padding(0, 3, 0, 19)));
+            Text = "Add PDFs and EPUBs to this folder to send them to Thorium Reader.",
+            TextWrapping = TextWrapping.Wrap,
+        });
 
-        layout.Controls.Add(TextLabel("Watched folder", bold: true));
-        var pathRow = new TableLayoutPanel { Dock = DockStyle.Top, AutoSize = true, ColumnCount = 2, Margin = new Padding(0, 2, 0, 3) };
-        pathRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        pathRow.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-        pathRow.Controls.Add(folder, 0, 0);
-        pathRow.Controls.Add(ActionButton("Change folder…", changeFolder), 1, 0);
-        layout.Controls.Add(pathRow);
-        layout.Controls.Add(Buttons(ActionButton("Open inbox", openInbox), ActionButton("Open EPUBs", openEpubs)));
-
-        layout.Controls.Add(new Panel { Height = 1, Dock = DockStyle.Top, Margin = new Padding(0, 13, 0, 13), BackColor = SystemColors.ControlLight });
-        layout.Controls.Add(TextLabel("Latest activity", bold: true));
-        layout.Controls.Add(activity);
-        layout.Controls.Add(Buttons(ActionButton("View activity", viewActivity)));
-        Controls.Add(layout);
-
-        FormClosing += (_, args) =>
+        content.Children.Add(PathRow("Watched folder", folder, Button("Change folder…", changeFolder)));
+        content.Children.Add(PathRow("Thorium Reader", reader, Button("Choose Reader…", chooseReader)));
+        content.Children.Add(new WrapPanel
         {
-            if (args.CloseReason != CloseReason.UserClosing)
-                return;
-            args.Cancel = true;
-            Hide();
+            Children = { Button("Open inbox", openInbox), Button("Open EPUBs", openEpubs), Button("View activity", viewActivity) },
+        });
+
+        startup.IsCheckedChanged += (_, _) =>
+        {
+            if (!settingStartup)
+                changeStartup(startup.IsChecked == true);
         };
+        content.Children.Add(startup);
+        content.Children.Add(startupHint);
+        content.Children.Add(new TextBlock { Text = "Latest activity", FontWeight = FontWeight.SemiBold });
+        content.Children.Add(activity);
+        controls.Children.Add(Button("Check for updates…", checkUpdates));
+        controls.Children.Add(Button("Quit", quit));
+        content.Children.Add(controls);
+        content.Children.Add(update);
+        Content = new ScrollViewer { Content = content };
     }
 
     public void SetFolder(string path) => folder.Text = path;
 
-    public void SetActivity(InboxActivity update) => activity.Text = update.Message;
+    public void SetReader(string? path) => reader.Text = path ?? "Automatically detected during import";
 
-    private static Label TextLabel(string text, float size = 9, bool bold = false, Padding? margin = null) =>
-        new()
-        {
-            Text = text,
-            AutoSize = true,
-            Font = new Font(SystemFonts.MessageBoxFont!.FontFamily, size, bold ? FontStyle.Bold : FontStyle.Regular),
-            Margin = margin ?? Padding.Empty,
-        };
+    public void SetActivity(string message) => activity.Text = message;
 
-    private static Button ActionButton(string text, Action action)
+#if THORIUM_TEST_BUILD
+    public void AddUpdatePreview(Action preview) => controls.Children.Insert(1, Button("Preview update…", preview));
+#endif
+
+    public void SetUpdateStatus(string? message)
     {
-        var button = new Button { Text = text, AutoSize = true, Padding = new Padding(6, 2, 6, 2), Margin = new Padding(0, 0, 7, 0) };
-        button.Click += (_, _) => action();
-        return button;
+        update.Text = message;
+        update.IsVisible = !string.IsNullOrWhiteSpace(message);
     }
 
-    private static FlowLayoutPanel Buttons(params Button[] buttons)
+    public void SetStartup(bool available, bool enabled)
     {
-        var row = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, WrapContents = false, Margin = Padding.Empty };
-        row.Controls.AddRange(buttons);
-        return row;
+        settingStartup = true;
+        startup.IsEnabled = available;
+        startup.IsChecked = enabled;
+        startupHint.Text = available && OperatingSystem.IsMacOS()
+            ? "Manage permission for login startup in macOS Login Items."
+            : "Login startup is available after installing the app.";
+        startupHint.IsVisible = !available || OperatingSystem.IsMacOS();
+        settingStartup = false;
+    }
+
+    private static TextBox ReadOnlyPath(string accessibleName)
+    {
+        var path = new TextBox { IsReadOnly = true, MinWidth = 0 };
+        AutomationProperties.SetName(path, accessibleName);
+        return path;
+    }
+
+    private static StackPanel PathRow(string name, TextBox path, Button action)
+    {
+        var fields = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), ColumnSpacing = 8 };
+        fields.Children.Add(path);
+        Grid.SetColumn(action, 1);
+        fields.Children.Add(action);
+        return new StackPanel
+        {
+            Spacing = 5,
+            Children = { new TextBlock { Text = name, FontWeight = FontWeight.SemiBold }, fields },
+        };
+    }
+
+    private static Button Button(string text, Action action)
+    {
+        var button = new Button { Content = text, Margin = new Thickness(0, 3, 6, 3), VerticalAlignment = VerticalAlignment.Center };
+        button.Click += (_, _) => action();
+        return button;
     }
 }

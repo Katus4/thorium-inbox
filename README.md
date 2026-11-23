@@ -1,26 +1,28 @@
 # Thorium Inbox
 
-Thorium Inbox is a Windows tray app for people who want to send selected PDFs and EPUBs to [Thorium Reader](https://www.thoriumreader.com/). Put a PDF from any website or source into your inbox. The app waits for the file to finish downloading, converts it locally, and adds the EPUB to Thorium.
-
-![Thorium Inbox settings with the watched folder and latest import](docs/settings.png)
+Thorium Inbox sends selected PDFs and EPUBs to Thorium Reader on Windows, Linux, and macOS. Put a PDF from any source into your dedicated inbox. The app waits for the file to finish downloading, converts it locally, and adds the EPUB to Thorium. [Thorium Reader](https://www.thoriumreader.com/)
 
 ## Install
 
-Signed installers for Windows x64 are published on [GitHub Releases](../../releases). Setup checks for Thorium Reader and installs the official EDRLab build if needed. It also lets you choose the watched folder and registers Thorium Inbox to start at Windows sign-in. See [building from source](CONTRIBUTING.md#build-the-desktop-app) for a local development build.
+Test installers are built in GitHub Actions for Windows x64, Debian/Ubuntu x64, and Intel and Apple Silicon Macs running macOS 15 or newer. Each build has its own download and SHA-256 checksum. [Download and test](docs/testing.md)
+
+Windows setup can install Thorium Reader and lets you choose the watched folder. On Linux and macOS, install Thorium Reader from EDRLab and open Thorium Inbox once after installing it. Use **Start at login** in settings to control background startup. [Official Thorium Reader downloads](https://www.thoriumreader.com/)
+
+Versioned, signed downloads will be published on [GitHub Releases](../../releases).
 
 ## Use
 
-1. Open **Thorium Inbox** from Start or the notification area and select **Open inbox**. The default is `Documents\Thorium Inbox\Inbox`.
+1. Open **Thorium Inbox** from the application launcher, tray, or menu bar and select **Open inbox**. The default is `Thorium Inbox/Inbox` in your Documents folder.
 2. Save, copy, or move the PDFs and EPUBs you want to read into that folder. Existing EPUBs go straight to Thorium. Your original PDFs stay in the inbox.
-3. Use **Open EPUBs** to find your converted copies in `Documents\Thorium Inbox\EPUBs`. Use **View activity** to see a failed import or check what was added.
+3. Use **Open EPUBs** to find your converted copies under `Thorium Inbox/EPUBs` in Documents. Use **View activity** to check imports and see details of any failures.
 
 The EPUB format preserves page layout as images. It works for magazine columns, scans, and other fixed pages, with zoom in Thorium. Keep the original PDF if you need to search or select its text.
 
-The tray checks for new releases at startup and daily. You can also select **Check for updates**. The app shows the release notes and offers **Get update now** to open that version on GitHub or **Later** to dismiss it.
+The app checks GitHub Releases after startup and once a day. **Check for updates** runs a check on demand. A newer version shows its GitHub release notes. **Install now** downloads and verifies the signed update before opening the platform installer. **Later** dismisses the prompt.
 
 ## Privacy
 
-Thorium Inbox processes your files locally. Setup downloads Thorium Reader from GitHub if it is missing. The app requests public release information from GitHub for update checks and keeps your document names, file contents, and import history on your device.
+Thorium Inbox processes your files locally and keeps your filenames, file contents, and import history on your device. Windows setup can download Thorium Reader from GitHub. The app requests public release information and any updates you choose to install from GitHub.
 
 ## Develop
 

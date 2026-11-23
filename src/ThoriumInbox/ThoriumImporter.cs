@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.Versioning;
 using Microsoft.Win32;
 using ThoriumInbox.Core;
 
@@ -6,10 +7,12 @@ namespace ThoriumInbox;
 
 internal static class ThoriumImporter
 {
+    public const string ReaderPreference = "thorium-executable.txt";
+
     public static async Task ImportAsync(string epubPath, CancellationToken cancellationToken)
     {
         string fingerprint = ThoriumLibraryReceipt.Fingerprint(epubPath);
-        var desktopProfile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "EDRLab.ThoriumReader");
+        string desktopProfile = DesktopProfile();
         string? executable = FindDesktop();
         if (executable is not null)
         {
@@ -37,6 +40,9 @@ internal static class ThoriumImporter
             return;
         }
 
+        if (!OperatingSystem.IsWindows())
+            throw new IOException("Install Thorium Reader or choose its executable in Thorium Inbox settings.");
+
         var storeApp = await FindStoreAppAsync(cancellationToken).ConfigureAwait(false);
         if (storeApp is null)
             throw new IOException("Thorium Reader was not found. Run Thorium Inbox setup to install it.");
@@ -50,19 +56,61 @@ internal static class ThoriumImporter
         await WaitForReceiptAsync(storeProfile, fingerprint, cancellationToken).ConfigureAwait(false);
     }
 
+    public static string? ResolveSelection(string path)
+    {
+        if (!Path.IsPathFullyQualified(path))
+            return null;
+        if (OperatingSystem.IsMacOS() && path.EndsWith(".app", StringComparison.OrdinalIgnoreCase))
+            path = Path.Combine(path, "Contents", "MacOS", "Thorium");
+        return File.Exists(path) ? path : null;
+    }
+
+    public static string? FindDesktop()
+    {
+        if (AppLocations.ReadPreference(ReaderPreference) is { } configured && ResolveSelection(configured) is { } path)
+            return path;
+        if (OperatingSystem.IsWindows())
+            return FindWindowsDesktop();
+        if (OperatingSystem.IsMacOS())
+            return ResolveSelection("/Applications/Thorium.app")
+                ?? ResolveSelection(Path.Combine(AppLocations.UserHome, "Applications", "Thorium.app"));
+        if (OperatingSystem.IsLinux())
+        {
+            var directories = Environment.GetEnvironmentVariable("PATH")?.Split(Path.PathSeparator) ?? [];
+            return new[] { "/usr/bin/thorium", "/opt/Thorium/thorium" }
+                .Concat(directories.Where(Path.IsPathFullyQualified).Select(directory => Path.Combine(directory, "thorium")))
+                .FirstOrDefault(File.Exists);
+        }
+
+        return null;
+    }
+
+    private static string DesktopProfile()
+    {
+        string parent = OperatingSystem.IsMacOS()
+            ? Path.Combine(AppLocations.UserHome, "Library", "Application Support")
+            : OperatingSystem.IsLinux() ? AppLocations.LinuxConfig
+            : Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+        return Path.Combine(parent, "EDRLab.ThoriumReader");
+    }
+
     private static string StageIfNeeded(string epubPath, string fingerprint)
     {
-        // Thorium's CLI treats brackets and braces in a path as glob expressions.
-        if (epubPath.IndexOfAny(['[', ']', '{', '}', '(', ')']) < 0)
+        // Thorium's CLI treats a path as a glob expression.
+        if (!HasGlobCharacters(epubPath))
             return epubPath;
         string directory = Path.Combine(AppLocations.AppData, "import");
-        if (directory.IndexOfAny(['[', ']', '{', '}', '(', ')']) >= 0)
-            throw new IOException("Thorium cannot import this filename from the current Windows profile folder.");
+        if (HasGlobCharacters(directory))
+            throw new IOException("Thorium cannot import this filename from the current profile folder.");
         Directory.CreateDirectory(directory);
         string staged = Path.Combine(directory, fingerprint + ".epub");
         File.Copy(epubPath, staged, overwrite: true);
         return staged;
     }
+
+    private static bool HasGlobCharacters(string path) =>
+        path.IndexOfAny(['[', ']', '{', '}', '(', ')', '*', '?']) >= 0
+        || (!OperatingSystem.IsWindows() && path.Contains('\\'));
 
     private static async Task WaitForReceiptAsync(string profile, string fingerprint, CancellationToken token)
     {
@@ -78,7 +126,8 @@ internal static class ThoriumImporter
         throw new IOException("Thorium did not confirm the import. It will be tried again.");
     }
 
-    private static string? FindDesktop()
+    [SupportedOSPlatform("windows")]
+    private static string? FindWindowsDesktop()
     {
         string[] locations = [
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", "Thorium"),

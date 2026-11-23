@@ -1,17 +1,25 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net10.0-windows</TargetFramework>
-    <UseWindowsForms>true</UseWindowsForms>
-    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+    <TargetFramework>net10.0</TargetFramework>
     <ApplicationIcon>Assets/inbox.ico</ApplicationIcon>
-    <Platforms>x64</Platforms>
-    <PlatformTarget>x64</PlatformTarget>
-    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+    <RuntimeIdentifiers>win-x64;linux-x64;osx-x64;osx-arm64</RuntimeIdentifiers>
     <Product>Thorium Inbox</Product>
-    <Description>A Windows inbox for sending PDFs and EPUBs to Thorium Reader.</Description>
+    <Description>A desktop inbox for sending PDFs and EPUBs to Thorium Reader.</Description>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(ThoriumTestBuild)' == 'true'">
+    <DefineConstants>$(DefineConstants);THORIUM_TEST_BUILD</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Avalonia.Desktop" Version="12.1.6" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.6" />
+    <!-- The UI needs the fontconfig-enabled Linux build. Ship one libSkiaSharp matching the managed library. -->
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="$(SkiaSharpVersion)" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="$(SkiaSharpVersion)" ExcludeAssets="all" />
+    <AvaloniaResource Include="Assets/inbox.ico" />
     <ProjectReference Include="../ThoriumInbox.Core/ThoriumInbox.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(ThoriumUpdatePublicKey)' != ''">
+    <AssemblyMetadata Include="ThoriumInbox.UpdatePublicKey" Value="$(ThoriumUpdatePublicKey)" />
   </ItemGroup>
 </Project>
