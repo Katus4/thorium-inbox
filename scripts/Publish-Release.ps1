@@ -109,4 +109,4 @@ foreach ($name in $assetNames) {
         throw "GitHub did not return the expected digest for $name."
     }
 }
-GitHub @('release', 'edit', $tag, '--repo', $Repository, '--draft=false', '--latest')
+Write-Output "Verified draft for $tag. Review the signed platform packages before publishing in GitHub."

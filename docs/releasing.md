@@ -35,6 +35,8 @@ In `artifacts/release`, write `update-manifest.json` as UTF-8 JSON. The `tag` is
 openssl dgst -sha256 -sign /secure/path/update-key.pem -out update-manifest.sig update-manifest.json
 ```
 
-Run `./scripts/Publish-Release.ps1 -Repository Katus4/thorium-inbox` from the matching Windows release checkout with `ThoriumUpdatePublicKey` set. The script validates the Windows signature, verifies the manifest and checksums, and confirms that the version tag matches the installer source commit. It checks the uploaded files before publishing the draft. [GitHub Releases](../../../releases)
+Run `./scripts/Publish-Release.ps1 -Repository Katus4/thorium-inbox` from the matching Windows release checkout with PowerShell 7, OpenSSL, and `ThoriumUpdatePublicKey` set. The script validates the Windows signature, confirms the version tag matches the source commit, and verifies the uploaded assets in a draft. After checking signatures, notarization, and the draft release notes, publish the draft as the latest stable release in GitHub. [GitHub Releases](../../../releases)
 
 An installed app with the matching public key verifies the manifest and installer digest before handing the package to the operating system. Builds without an update key can open the release page from the update dialog. Users choose **Install now** or **Later**.
+
+On Linux the app shows where it saved the verified `.deb` so you can install it with your package manager and restart the app.

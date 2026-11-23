@@ -141,6 +141,19 @@ jobs:
           version=$(dpkg-deb --field "$package" Version)
           actual_version=$("$executable" --version)
           test "$actual_version" = "$version"
+
+          export XDG_CONFIG_HOME="$payload/config" XDG_DATA_HOME="$payload/data"
+          export XDG_DOCUMENTS_DIR="$payload/documents"
+          mkdir -p "$XDG_CONFIG_HOME" "$XDG_DOCUMENTS_DIR"
+          printf 'XDG_DOCUMENTS_DIR="%s"\n' "$XDG_DOCUMENTS_DIR" > "$XDG_CONFIG_HOME/user-dirs.dirs"
+          status=0
+          timeout --kill-after=5s 8s xvfb-run -a "$executable" > "$payload/desktop.log" 2>&1 || status=$?
+          if [[ "$status" != 124 ]]; then
+            cat "$payload/desktop.log"
+            echo "Desktop smoke exited unexpectedly with status $status."
+            exit 1
+          fi
+          grep -F 'Watching for PDFs and EPUBs.' "$XDG_DATA_HOME/Thorium Inbox/activity.log"
       - name: Upload unsigned test installer
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v7

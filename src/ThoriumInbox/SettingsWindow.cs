@@ -13,7 +13,7 @@ internal sealed class SettingsWindow : Window
     private readonly CheckBox startup = new() { Content = "Start at login" };
     private readonly TextBlock startupHint = new() { TextWrapping = TextWrapping.Wrap, IsVisible = false };
     private readonly TextBlock activity = new() { TextWrapping = TextWrapping.Wrap };
-    private readonly TextBlock update = new() { TextWrapping = TextWrapping.Wrap, IsVisible = false };
+    private readonly SelectableTextBlock update = new() { TextWrapping = TextWrapping.Wrap, IsVisible = false };
     private readonly WrapPanel controls = new();
     private bool settingStartup;
 

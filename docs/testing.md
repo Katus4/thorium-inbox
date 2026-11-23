@@ -19,7 +19,7 @@ Use a test machine or VM whose policy permits unsigned builds. To verify the dow
 
 ## Check login startup and updates
 
-1. Enable **Start at login**, sign out and back in, then copy a different PDF into the inbox. The background app should process it. On desktops without a tray area, launch Thorium Inbox from the applications menu to reopen settings.
+1. Enable **Start at login**, sign out and back in, then copy a different PDF into the inbox. The background app should process it. Open Thorium Inbox again from your applications menu or Applications folder to reopen settings.
 2. Select **Check for updates** to exercise the GitHub connection. With no newer platform release, the app reports that it is up to date for that platform.
 3. Select **Preview update** to open sample release notes. Choose **Later**, reopen the preview, then choose **Install now**. The preview reports your choice and finishes without launching an installer.
 

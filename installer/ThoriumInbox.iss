@@ -46,7 +46,7 @@ Name: "{autoprograms}\Thorium Inbox"; Filename: "{app}\ThoriumInbox.exe"
 
 [Registry]
 Root: HKCU; Subkey: "Software\Thorium Inbox"; ValueType: string; ValueName: "InboxFolder"; ValueData: "{code:WatchedDirectory}"
-Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "Thorium Inbox"; ValueData: """{app}\ThoriumInbox.exe"" --background"; Flags: uninsdeletevalue
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "Thorium Inbox"; ValueData: """{app}\ThoriumInbox.exe"" --background"; Flags: uninsdeletevalue; Check: ShouldStartAtLogin
 
 [Run]
 Filename: "{app}\ThoriumInbox.exe"; Description: "Open Thorium Inbox"; Flags: nowait postinstall skipifsilent runasoriginaluser
@@ -54,6 +54,15 @@ Filename: "{app}\ThoriumInbox.exe"; Description: "Open Thorium Inbox"; Flags: no
 [Code]
 var
   InboxPage: TInputDirWizardPage;
+
+function ShouldStartAtLogin: Boolean;
+var
+  Preference: AnsiString;
+begin
+  Result := True;
+  if LoadStringFromFile(ExpandConstant('{localappdata}\Thorium Inbox\login-startup.txt'), Preference) then
+    Result := Preference <> 'disabled';
+end;
 
 procedure InitializeWizard;
 var

@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Reflection;
 using System.Security.Cryptography;
@@ -49,7 +50,7 @@ internal sealed class ReleaseNotifications : IDisposable
         try
         {
             var release = new GitHubUpdate(new Version(Program.Version.Major, Program.Version.Minor, Program.Version.Build + 1),
-                "Test preview. This dialog uses sample release notes.\n\nNew features\n• Open the watched folder from settings.\n\nFixes\n• Keep the first page readable beside a large foldout.",
+                "Test preview. This dialog uses sample release notes.\n\n## New features\n- Open the watched folder from settings.\n\n## Fixes\n- Keep the first page readable beside a large foldout.",
                 new Uri($"https://github.com/{GitHubReleaseFeed.Repository}/releases"), HasSignedManifest: true);
             bool accepted = await new ReleaseUpdateDialog(release, canInstall: true).AskAsync(owner);
             if (!disposed)
@@ -98,7 +99,7 @@ internal sealed class ReleaseNotifications : IDisposable
         }
         catch (Exception exception) when (exception is HttpRequestException or JsonException or OperationCanceledException
             or IOException or InvalidDataException or UnauthorizedAccessException or CryptographicException or FormatException
-            or System.ComponentModel.Win32Exception)
+            or Win32Exception)
         {
             if (!disposed && (manual || owner.IsVisible))
                 ShowStatus($"Could not complete the update. {exception.Message}");
@@ -116,15 +117,17 @@ internal sealed class ReleaseNotifications : IDisposable
         string installer = await releases.DownloadAsync(release.Version, installerName, root, deadline.Token);
         if (disposed)
             return;
-        if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS())
+        if (OperatingSystem.IsLinux())
         {
-            var launcher = new ProcessStartInfo(OperatingSystem.IsMacOS() ? "/usr/bin/open" : "xdg-open")
-            {
-                UseShellExecute = false,
-                CreateNoWindow = true,
-            };
-            launcher.ArgumentList.Add(installer);
-            using var process = Process.Start(launcher) ?? throw new IOException("Could not open the platform installer.");
+            ShowStatus($"Verified package saved at {installer}. Install it with your package manager, then restart Thorium Inbox.");
+            try { OpenPackage("xdg-open", installer)?.Dispose(); }
+            catch (Win32Exception) { }
+            return;
+        }
+
+        if (OperatingSystem.IsMacOS())
+        {
+            using var process = OpenPackage("/usr/bin/open", installer) ?? throw new IOException("Could not open macOS Installer.");
             var exited = process.WaitForExitAsync(deadline.Token);
             await Task.WhenAny(exited, Task.Delay(TimeSpan.FromSeconds(1), deadline.Token));
             deadline.Token.ThrowIfCancellationRequested();
@@ -139,6 +142,13 @@ internal sealed class ReleaseNotifications : IDisposable
             Process.Start(new ProcessStartInfo(installer) { UseShellExecute = true })?.Dispose();
         }
         await quit();
+    }
+
+    private static Process? OpenPackage(string launcher, string installer)
+    {
+        var start = new ProcessStartInfo(launcher) { UseShellExecute = false, CreateNoWindow = true };
+        start.ArgumentList.Add(installer);
+        return Process.Start(start);
     }
 
     private void ShowStatus(string message)

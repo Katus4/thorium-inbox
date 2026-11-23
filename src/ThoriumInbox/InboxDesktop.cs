@@ -15,6 +15,7 @@ internal sealed class InboxDesktop : IDisposable
     private readonly SettingsWindow window;
     private readonly DesktopTray tray;
     private readonly ReleaseNotifications updates;
+    private readonly IActivatableLifetime? activation;
     private InboxWatcher? watcher;
     private FileSystemWatcher? openSignal;
     private InboxActivity? lastLogged;
@@ -32,7 +33,7 @@ internal sealed class InboxDesktop : IDisposable
             ChangeStartup, async () => await CheckUpdatesAsync(), async () => await QuitAsync());
         window.Closing += (_, args) =>
         {
-            if (quitting || args.CloseReason == WindowCloseReason.ApplicationShutdown)
+            if (quitting || args.CloseReason != WindowCloseReason.WindowClosing)
                 return;
             args.Cancel = true;
             window.Hide();
@@ -43,6 +44,12 @@ internal sealed class InboxDesktop : IDisposable
 #endif
         tray = new DesktopTray(application, icon, ShowWindow, OpenInbox, OpenEpubs, ViewActivity,
             async () => await CheckUpdatesAsync(), async () => await QuitAsync());
+        if (OperatingSystem.IsMacOS())
+        {
+            activation = application.TryGetFeature<IActivatableLifetime>();
+            if (activation is not null)
+                activation.Activated += ReopenSettings;
+        }
     }
 
     public void Start(bool background)
@@ -53,11 +60,18 @@ internal sealed class InboxDesktop : IDisposable
         try
         {
             window.SetStartup(LoginStartup.IsAvailable, LoginStartup.Initialize());
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidOperationException)
+        {
+            Display(new InboxActivity($"Could not configure login startup. {exception.Message}", IsError: true));
+        }
+        try
+        {
             StartWindowRequests();
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidOperationException)
         {
-            Display(new InboxActivity($"Could not set up desktop preferences. {exception.Message}", IsError: true));
+            Display(new InboxActivity($"Could not enable reopening settings from the launcher. {exception.Message}", IsError: true));
         }
 
         if (!background)
@@ -74,6 +88,12 @@ internal sealed class InboxDesktop : IDisposable
     }
 
     private Task CheckUpdatesAsync() => updates.CheckNowAsync();
+
+    private void ReopenSettings(object? sender, ActivatedEventArgs args)
+    {
+        if (args.Kind == ActivationKind.Reopen)
+            ShowWindow();
+    }
 
     private void StartWindowRequests()
     {
@@ -254,6 +274,8 @@ internal sealed class InboxDesktop : IDisposable
             return;
         disposed = true;
         quitting = true;
+        if (activation is not null)
+            activation.Activated -= ReopenSettings;
         openSignal?.Dispose();
         updates.Dispose();
         tray.Dispose();

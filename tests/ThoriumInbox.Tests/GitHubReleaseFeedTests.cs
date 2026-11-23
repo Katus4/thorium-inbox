@@ -45,16 +45,35 @@ public sealed class GitHubReleaseFeedTests
         Assert.Null(await new GitHubReleaseFeed(client).FindUpdateAsync(new Version(0, 1, 0), WindowsInstaller));
     }
 
-    private static string ReleaseJson(string tag, bool draft = false, bool prerelease = false, string asset = WindowsInstaller) =>
-        JsonSerializer.Serialize(new
+    [Theory]
+    [InlineData(ReleaseAssets.LinuxX64)]
+    [InlineData(ReleaseAssets.MacX64)]
+    [InlineData(ReleaseAssets.MacArm64)]
+    public async Task OffersInstallationWithBothManifestAssetsAndTheMatchingPlatform(string installer)
+    {
+        using var client = new HttpClient(new ResponseHandler(HttpStatusCode.OK,
+            ReleaseJson("v0.2.0", asset: installer, includeManifest: true)));
+        var feed = new GitHubReleaseFeed(client);
+        var installed = new Version(0, 1, 0);
+
+        Assert.True((await feed.FindUpdateAsync(installed, installer))?.HasSignedManifest);
+        Assert.Null(await feed.FindUpdateAsync(installed, WindowsInstaller));
+    }
+
+    private static string ReleaseJson(string tag, bool draft = false, bool prerelease = false, string asset = WindowsInstaller,
+        bool includeManifest = false)
+    {
+        string[] names = includeManifest ? [asset, ReleaseAssets.Manifest, ReleaseAssets.ManifestSignature] : [asset];
+        return JsonSerializer.Serialize(new
         {
             tag_name = tag,
             draft,
             prerelease,
             body = Notes,
             html_url = "https://unrelated.example/",
-            assets = new[] { new { name = asset, state = "uploaded" } },
+            assets = names.Select(name => new { name, state = "uploaded" }),
         });
+    }
 
     private sealed class ResponseHandler(HttpStatusCode status, string json) : HttpMessageHandler
     {
